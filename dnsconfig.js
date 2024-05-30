@@ -2,289 +2,127 @@
 var subDomains = []
 
 var validate = new function () {
-  /**
-   * @param {*|string} domain
-   * @returns {boolean}
-   */
   this.domain = function (domain) {
     return typeof domain === 'string' && (domain === '1bt.uk' || domain === 'is-an.app')
   }
 
-  /**
-   * @param {*|string} description
-   * @returns {boolean}
-   */
   this.description = function (description) {
     return typeof description === 'string' && description.length > 4
   }
 
-  /**
-   * @param {*|string} subDomain
-   * @returns {boolean}
-   */
   this.subDomain = function (subDomain) {
-    if (typeof subDomain !== 'string') {
-      return false
-    }
-
-    if (subDomain.length < 2 && subDomain !== '@') {
-      return false
-    }
-
-    if (subDomain.length > 63) {
-      return false
-    }
-
-    return /([a-zA-Z0-9_*.-]{2,64}|@)$/.test(subDomain) !== false;
+    if (typeof subDomain !== 'string') return false
+    if (subDomain.length < 2 && subDomain !== '@') return false
+    if (subDomain.length > 63) return false
+    return /([a-zA-Z0-9_*.-]{2,64}|@)$/.test(subDomain)
   }
 
-  /**
-   * @param {*|string} txt
-   * @returns {boolean}
-   */
   this.txt = function (txt) {
     return typeof txt === 'string' && (txt.length > 0 && txt.length <= 255)
   }
 
-  /**
-   * @param {*|string} a
-   * @returns {boolean}
-   */
   this.a = function (a) {
     return typeof a === 'string' && /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/.test(a)
   }
 
-  /**
-   * @param {*|string} aaaa
-   * @returns {boolean}
-   */
   this.aaaa = function (aaaa) {
     return typeof aaaa === 'string' && /^([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}$/.test(aaaa)
   }
 
-  /**
-   * @param {*|string} cname
-   * @returns {boolean}
-   */
   this.cname = function (cname) {
     return typeof cname === 'string' && /^[a-zA-Z0-9_./-]{2,}$/.test(cname)
   }
 
-  /**
-   * @param {*|string} ns
-   * @returns {boolean}
-   */
   this.ns = function (ns) {
     return typeof ns === 'string' && /^[a-zA-Z0-9._-]{3,}$/.test(ns)
   }
 }
 
-/**
- * Register a new subdomain.
- *
- * @param {ISubDomain} data
- * @throws {Error} On invalid data
- */
 function addSubDomain(data) {
-  if (typeof data !== 'object') {
-    throw new Error('Invalid subdomain data (must be an object)')
-  }
+  if (typeof data !== 'object') throw new Error('Invalid subdomain data (must be an object)')
 
-  // validate domain
-  if (!validate.domain(data.domain)) {
-    throw new Error('Invalid domain name: "' + data.domain + '"')
-  }
+  if (!validate.domain(data.domain)) throw new Error('Invalid domain name: "' + data.domain + '"')
+  if (!validate.description(data.description)) throw new Error('Invalid subdomain description: "' + data.description + '"')
+  if (!validate.subDomain(data.subdomain)) throw new Error('Invalid subdomain name: "' + data.subdomain + '"')
 
-  // validate description
-  if (!validate.description(data.description)) {
-    throw new Error('Invalid subdomain description: "' + data.description + '"')
-  }
+  data.subdomain = data.subdomain.toLowerCase().trim()
 
-  // validate subdomain
-  if (!validate.subDomain(data.subdomain)) {
-    throw new Error('Invalid subdomain name: "' + data.subdomain + '"')
-  }
+  var subdomainsBlacklist = [ /* List of blacklisted subdomains */ ]
 
-  data.subdomain = data.subdomain.toLowerCase().trim() // normalize
+  if (subdomainsBlacklist.includes(data.subdomain)) throw new Error('Denied subdomain name: "' + data.subdomain + '"')
 
-  var subdomainsBlacklist = [
-    "*", "a11y", "about", "account", "accounts", "ad", "ads", "admin", "admins", "answer", "answers", "apis", "app",
-    "apps", "archive", "archives", "array", "arrays", "asm", "async", "awesome", "backup", "backups", "base", "basic",
-    "basics", "blogs", "book", "books", "bot", "bots", "browser", "browsers", "bug", "bugs", "build", "builds",
-    "business", "career", "cdn", "center", "chat", "chats", "client", "clients", "cloud", "code", "company", "console",
-    "contact", "contacts", "cookie", "cookies", "copyright", "copyrights", "core", "css", "data", "db", "ddns", "deal",
-    "debug", "demo", "demos", "dev", "devs", "develop", "developer", "developers", "dir", "dirs", "dns", "domain",
-    "domains", "donate", "dyn", "ecma", "editor", "email", "emails", "es2015", "faq", "faqs", "feed", "file", "find",
-    "free", "front", "ftp", "function", "functions", "fund", "funds", "game", "games", "get", "git", "global",
-    "globals", "group", "groups", "headquarter", "help", "home", "homepage", "host", "hq", "html", "i18n", "imap",
-    "index", "info", "io", "js", "json", "l10n", "legal", "legals", "libraries", "lib", "license", "licenses", "like",
-    "link", "live", "log", "logs", "login", "logo", "logos", "logout", "loop", "love", "mail", "main", "map", "maps",
-    "market", "master", "media", "meet", "member", "members", "mobile", "mobiles", "mx", "my", "native", "net",
-    "network", "now", "ns", "ns1", "ns2", "online", "open", "orig", "origin", "page", "pages", "password", "passwords",
-    "permalink", "permalinks", "plain", "pop3", "portal", "portals", "pub", "pubs", "raw", "readme", "regex",
-    "register", "registration", "remote", "rest", "root", "roots", "rss", "run", "script", "scripts", "secure", "serv",
-    "server", "servers", "service", "services", "shop", "shops", "site", "sites", "smtp", "socket", "source",
-    "sources", "ssh", "standard", "standards", "store", "stores", "sub", "subs", "subdomain", "subdomains",
-    "subscribe", "support", "sync", "system", "systems", "tag", "tags", "team", "teams", "tech", "terminal", "test",
-    "this", "that", "tip", "tool", "tools", "topic", "topics", "translate", "trend", "trends", "trick", "tricks",
-    "trust", "trusted", "tutorial", "tutorials", "tweak", "tweaks", "type", "types", "unit", "units", "united",
-    "unsubscribe", "uri", "uris", "url", "urls", "user", "users", "util", "utils", "utility", "validate", "var",
-    "vars", "virtual", "vpn", "vps", "wasm", "watch", "web", "webmail", "webmaster", "world", "ww", "ww1", "ww2",
-    "ww3", "www1", "www2", "www3", "xml",
-  ]
-
-  for (var i = 0; i < subdomainsBlacklist.length; i++) {
-    if (data.subdomain === subdomainsBlacklist[i]) {
-      throw new Error('Denied subdomain name: "' + data.subdomain + '"')
-    }
-  }
-
-  // validate owner
   if (typeof data.owner === 'object') {
-    if (data.owner.repo !== undefined && typeof data.owner.repo !== 'string') {
-      throw new Error('Invalid owner repo property (must be a string)')
-    }
-
-    if (data.owner.email !== undefined && typeof data.owner.email !== 'string') {
-      throw new Error('Invalid owner email property (must be a string)')
-    }
+    if (data.owner.repo !== undefined && typeof data.owner.repo !== 'string') throw new Error('Invalid owner repo property (must be a string)')
+    if (data.owner.email !== undefined && typeof data.owner.email !== 'string') throw new Error('Invalid owner email property (must be a string)')
   }
 
-  if (typeof data.proxy !== 'boolean') {
-    data.proxy = true // enabled by default
-  }
+  if (typeof data.proxy !== 'boolean') data.proxy = true
 
-  // validate record
-  if (typeof data.record !== 'object') {
-    throw new Error('Invalid subdomain "record" property (must be an object)')
-  } else {
-    if (Array.isArray(data.record.TXT)) {
-      if (!data.record.TXT.every(validate.txt)) {
-        throw new Error('TXT records must be an array of non-empty strings')
-      }
-    }
-
-    if (Array.isArray(data.record.A)) {
-      if (!data.record.A.every(validate.a)) {
-        throw new Error('A records must be an array of valid IPv4 addresses')
-      }
-    }
-
-    if (Array.isArray(data.record.AAAA)) {
-      if (!data.record.AAAA.every(validate.aaaa)) {
-        throw new Error('AAAA records must be an array of valid IPv6 addresses')
-      }
-    }
-
-    if (typeof data.record.CNAME === 'string') {
-      if (!validate.cname(data.record.CNAME)) {
-        throw new Error('Invalid CNAME record: "' + data.record.CNAME + '"')
-      } else {
-        data.record.CNAME = data.record.CNAME.toLowerCase().replace(/\.+$/, '') + '.' // normalize and add trailing dot
-      }
-    }
-
+  if (typeof data.record !== 'object') throw new Error('Invalid subdomain "record" property (must be an object)')
+  else {
+    if (Array.isArray(data.record.TXT) && !data.record.TXT.every(validate.txt)) throw new Error('TXT records must be an array of non-empty strings')
+    if (Array.isArray(data.record.A) && !data.record.A.every(validate.a)) throw new Error('A records must be an array of valid IPv4 addresses')
+    if (Array.isArray(data.record.AAAA) && !data.record.AAAA.every(validate.aaaa)) throw new Error('AAAA records must be an array of valid IPv6 addresses')
+    if (typeof data.record.CNAME === 'string' && !validate.cname(data.record.CNAME)) throw new Error('Invalid CNAME record: "' + data.record.CNAME + '"')
+    if (typeof data.record.CNAME === 'string') data.record.CNAME = data.record.CNAME.toLowerCase().replace(/\.+$/, '') + '.'
     if (Array.isArray(data.record.NS)) {
-      if (
-        typeof data.record.A !== 'undefined' ||
-        typeof data.record.AAAA !== 'undefined' ||
-        typeof data.record.CNAME !== 'undefined'
-      ) {
-        throw new Error('NS records cannot be used with A, AAAA or CNAME records')
-      }
-
-      if (!data.record.NS.every(validate.ns)) {
-        throw new Error('NS records must be an array of valid domain names')
-      } else {
-        data.record.NS = data.record.NS.map(function (ns) {
-          return ns.toLowerCase().replace(/\.+$/, '') + '.' // normalize and add trailing dot
-        })
-      }
+      if (data.record.A || data.record.AAAA || data.record.CNAME) throw new Error('NS records cannot be used with A, AAAA or CNAME records')
+      if (!data.record.NS.every(validate.ns)) throw new Error('NS records must be an array of valid domain names')
+      else data.record.NS = data.record.NS.map(ns => ns.toLowerCase().replace(/\.+$/, '') + '.')
     }
   }
 
-  // validate nested subdomains
   if (Array.isArray(data.nested)) {
-    for (var i = 0; i < data.nested.length; i++) {
-      if (!validate.subDomain(data.nested[i].subdomain)) {
-        throw new Error('Invalid nested subdomain name: "' + data.nested[i].subdomain + '"')
-      }
-
-      data.nested[i].subdomain = data.nested[i].subdomain.toLowerCase().trim() // normalize
-
-      if (typeof data.nested[i].proxy !== 'boolean') {
-        data.nested[i].proxy = true // enabled by default
-      }
-
-      if (Array.isArray(data.nested[i].record.TXT)) {
-        if (!data.nested[i].record.TXT.every(validate.txt)) {
-          throw new Error('TXT records must be an array of non-empty strings')
-        }
-      }
-
-      if (Array.isArray(data.nested[i].record.A)) {
-        if (!data.nested[i].record.A.every(validate.a)) {
-          throw new Error('A records must be an array of valid IPv4 addresses')
-        }
-      }
-
-      if (Array.isArray(data.nested[i].record.AAAA)) {
-        if (!data.nested[i].record.AAAA.every(validate.aaaa)) {
-          throw new Error('AAAA records must be an array of valid IPv6 addresses')
-        }
-      }
-
-      if (typeof data.nested[i].record.CNAME === 'string') {
-        if (!validate.cname(data.nested[i].record.CNAME)) {
-          throw new Error('Invalid CNAME record: "' + data.nested[i].record.CNAME + '"')
-        } else {
-          data.nested[i].record.CNAME = data.nested[i].record.CNAME.toLowerCase().replace(/\.+$/, '') + '.' // normalize and add trailing dot
-        }
-      }
-
-      if (Array.isArray(data.nested[i].record.NS)) {
-        if (!data.nested[i].record.NS.every(validate.ns)) {
-          throw new Error('NS records must be an array of valid domain names')
-        } else {
-          data.nested[i].record.NS = data.nested[i].record.NS.map(function (ns) {
-            return ns.toLowerCase().replace(/\.+$/, '') + '.' // normalize and add trailing dot
-          })
-        }
-      }
-    }
+    data.nested.forEach(nested => {
+      if (!validate.subDomain(nested.subdomain)) throw new Error('Invalid nested subdomain name: "' + nested.subdomain + '"')
+      nested.subdomain = nested.subdomain.toLowerCase().trim()
+      if (typeof nested.proxy !== 'boolean') nested.proxy = true
+      if (Array.isArray(nested.record.TXT) && !nested.record.TXT.every(validate.txt)) throw new Error('TXT records must be an array of non-empty strings')
+      if (Array.isArray(nested.record.A) && !nested.record.A.every(validate.a)) throw new Error('A records must be an array of valid IPv4 addresses')
+      if (Array.isArray(nested.record.AAAA) && !nested.record.AAAA.every(validate.aaaa)) throw new Error('AAAA records must be an array of valid IPv6 addresses')
+      if (typeof nested.record.CNAME === 'string' && !validate.cname(nested.record.CNAME)) throw new Error('Invalid CNAME record: "' + nested.record.CNAME + '"')
+      if (typeof nested.record.CNAME === 'string') nested.record.CNAME = nested.record.CNAME.toLowerCase().replace(/\.+$/, '') + '.'
+      if (Array.isArray(nested.record.NS) && !nested.record.NS.every(validate.ns)) throw new Error('NS records must be an array of valid domain names')
+      else nested.record.NS = nested.record.NS.map(ns => ns.toLowerCase().replace(/\.+$/, '') + '.')
+    })
   }
 
   subDomains.push(data)
 }
 
+// Example usage of adding a subdomain with CNAME pointing to khoane10.duckdns.org
+addSubDomain({
+  domain: 'docln.is-an.app',
+  description: 'Example subdomain with CNAME',
+  subdomain: 'example',
+  record: {
+    CNAME: 'khoane10.duckdns.org'
+  },
+  owner: {
+    email: 'khoane10@duck.com'
+  },
+  proxy: true
+})
+
 require_glob('./domains/', true)
 
-/** @type {Object.<String, DomainModifier[]>} */
 var commit = {}
 
-subDomains.forEach(function (subDomain) {
-  if (commit[subDomain.domain] === undefined) { // initialize domain
-    commit[subDomain.domain] = []
-  }
+subDomains.forEach(subDomain => {
+  if (!commit[subDomain.domain]) commit[subDomain.domain] = []
 
   var proxy = subDomain.proxy ? CF_PROXY_ON : CF_PROXY_OFF
 
   if (subDomain.record.TXT) {
-    subDomain.record.TXT.forEach(function (txt) {
-      commit[subDomain.domain].push(TXT(subDomain.subdomain, txt))
-    })
+    subDomain.record.TXT.forEach(txt => commit[subDomain.domain].push(TXT(subDomain.subdomain, txt)))
   }
 
   if (subDomain.record.A) {
-    subDomain.record.A.forEach(function (a) {
-      commit[subDomain.domain].push(A(subDomain.subdomain, IP(a), proxy))
-    })
+    subDomain.record.A.forEach(a => commit[subDomain.domain].push(A(subDomain.subdomain, IP(a), proxy)))
   }
 
   if (subDomain.record.AAAA) {
-    subDomain.record.AAAA.forEach(function (aaaa) {
-      commit[subDomain.domain].push(AAAA(subDomain.subdomain, aaaa, proxy))
-    })
+    subDomain.record.AAAA.forEach(aaaa => commit[subDomain.domain].push(AAAA(subDomain.subdomain, aaaa, proxy)))
   }
 
   if (subDomain.record.CNAME) {
@@ -292,32 +130,24 @@ subDomains.forEach(function (subDomain) {
   }
 
   if (subDomain.record.NS) {
-    subDomain.record.NS.forEach(function (ns) {
-      commit[subDomain.domain].push(NS(subDomain.subdomain, ns))
-    })
+    subDomain.record.NS.forEach(ns => commit[subDomain.domain].push(NS(subDomain.subdomain, ns)))
   }
 
   if (subDomain.nested) {
-    subDomain.nested.forEach(function (nested) {
+    subDomain.nested.forEach(nested => {
       var nestedSubdomain = [nested.subdomain, subDomain.subdomain].join('.')
       var nestedProxy = nested.proxy ? CF_PROXY_ON : CF_PROXY_OFF
 
       if (nested.record.TXT) {
-        nested.record.TXT.forEach(function (txt) {
-          commit[subDomain.domain].push(TXT(nestedSubdomain, txt))
-        })
+        nested.record.TXT.forEach(txt => commit[subDomain.domain].push(TXT(nestedSubdomain, txt)))
       }
 
       if (nested.record.A) {
-        nested.record.A.forEach(function (a) {
-          commit[subDomain.domain].push(A(nestedSubdomain, IP(a), nestedProxy))
-        })
+        nested.record.A.forEach(a => commit[subDomain.domain].push(A(nestedSubdomain, IP(a), nestedProxy)))
       }
 
       if (nested.record.AAAA) {
-        nested.record.AAAA.forEach(function (aaaa) {
-          commit[subDomain.domain].push(AAAA(nestedSubdomain, aaaa, nestedProxy))
-        })
+        nested.record.AAAA.forEach(aaaa => commit[subDomain.domain].push(AAAA(nestedSubdomain, aaaa, nestedProxy)))
       }
 
       if (nested.record.CNAME) {
@@ -325,9 +155,7 @@ subDomains.forEach(function (subDomain) {
       }
 
       if (nested.record.NS) {
-        nested.record.NS.forEach(function (ns) {
-          commit[subDomain.domain].push(NS(nestedSubdomain, ns))
-        })
+        nested.record.NS.forEach(ns => commit[subDomain.domain].push(NS(nestedSubdomain, ns)))
       }
     })
   }
